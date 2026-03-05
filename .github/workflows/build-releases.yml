@@ -1,0 +1,252 @@
+name: Build Releases
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags
+    branches:
+      - main  # Build test artifacts on main branch (no release)
+      - dev   # Build test artifacts on dev branch (no release)
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  # =============================================================================
+  # Windows Build
+  # =============================================================================
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE with PyInstaller
+        run: |
+          $cmd = "pyinstaller --onefile --noconsole --name AncrooVoice --icon=assets/icons/app/ancroo-voice.ico --add-data `"assets;assets`" --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32 --hidden-import PIL._tkinter_finder main.py"
+          Write-Host "Running: $cmd"
+          Invoke-Expression $cmd
+        shell: pwsh
+
+      - name: Prepare distribution package
+        run: |
+          mkdir dist-package
+          copy dist\AncrooVoice.exe dist-package\
+          copy .env.example dist-package\ancroo-voice.ini
+          copy README.md dist-package\
+          copy LICENSE dist-package\
+          if exist ancroo-voice.png copy ancroo-voice.png dist-package\
+        shell: cmd
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AncrooVoice-Windows
+          path: dist-package/
+          retention-days: 30
+
+  # =============================================================================
+  # Linux Build (AppImage)
+  # =============================================================================
+  build-linux:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libportaudio2 \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            fuse \
+            libfuse2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build binary with PyInstaller
+        run: |
+          pyinstaller --onefile --noconsole --name AncrooVoice --add-data "assets:assets" --hidden-import pynput.keyboard._xorg --hidden-import pynput.mouse._xorg --hidden-import PIL._tkinter_finder main.py
+
+      - name: Download appimagetool
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+
+      - name: Create AppDir structure
+        run: |
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          mkdir -p AppDir/usr/share/applications
+
+          # Copy binary
+          cp dist/AncrooVoice AppDir/usr/bin/
+          chmod +x AppDir/usr/bin/AncrooVoice
+
+          # Copy icon
+          cp assets/icons/app/ancroo-voice_icon.png AppDir/usr/share/icons/hicolor/256x256/apps/ancroo-voice.png
+          cp assets/icons/app/ancroo-voice_icon.png AppDir/ancroo-voice.png
+
+          # Create .desktop file
+          cat > AppDir/ancroo-voice.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=Ancroo Voice
+          Exec=AncrooVoice
+          Icon=ancroo-voice
+          Categories=AudioVideo;Audio;Utility;
+          Comment=Voice-to-text transcription tool
+          Terminal=false
+          DESKTOP
+          sed -i 's/^[[:space:]]*//' AppDir/ancroo-voice.desktop
+
+          cp AppDir/ancroo-voice.desktop AppDir/usr/share/applications/
+
+          # Create AppRun
+          cat > AppDir/AppRun << 'APPRUN'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          export PATH="${HERE}/usr/bin:${PATH}"
+          exec "${HERE}/usr/bin/AncrooVoice" "$@"
+          APPRUN
+          sed -i 's/^[[:space:]]*//' AppDir/AppRun
+
+          chmod +x AppDir/AppRun
+
+      - name: Build AppImage
+        run: |
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir AncrooVoice-Linux.AppImage
+
+      - name: Prepare distribution package
+        run: |
+          mkdir dist-package
+          cp AncrooVoice-Linux.AppImage dist-package/
+          cp .env.example dist-package/ancroo-voice.ini
+          cp README.md dist-package/
+          cp LICENSE dist-package/
+          [ -f ancroo-voice.png ] && cp ancroo-voice.png dist-package/ || true
+
+          # Create launcher script that works without libfuse2 (APPIMAGE_EXTRACT_AND_RUN)
+          cat > dist-package/AncrooVoice-Linux.sh << 'EOF'
+          #!/bin/bash
+          DIR="$(dirname "$(readlink -f "$0")")"
+          APPIMAGE_EXTRACT_AND_RUN=1 exec "$DIR/AncrooVoice-Linux.AppImage" "$@"
+          EOF
+          sed -i 's/^[[:space:]]*//' dist-package/AncrooVoice-Linux.sh
+          chmod +x dist-package/AncrooVoice-Linux.AppImage
+          chmod +x dist-package/AncrooVoice-Linux.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AncrooVoice-Linux
+          path: dist-package/
+          retention-days: 30
+
+  # =============================================================================
+  # Create Release
+  # =============================================================================
+  release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          find artifacts -type f
+          echo ""
+          echo "Directory structure:"
+          ls -la artifacts/
+
+      - name: Create archives for release
+        run: |
+          cd artifacts
+          for dir in */; do
+            name="${dir%/}"
+            if [[ "$name" == *"Windows"* ]]; then
+              echo "Creating ZIP for $name"
+              zip -9 -r "../${name}.zip" "$name"
+            else
+              echo "Creating tar.gz for $name"
+              tar -czvf "../${name}.tar.gz" "$name"
+            fi
+          done
+          cd ..
+          echo ""
+          echo "Created archives:"
+          ls -la *.zip *.tar.gz 2>/dev/null || true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            AncrooVoice-Windows.zip
+            AncrooVoice-Linux.tar.gz
+          generate_release_notes: true
+          body: |
+            ## Downloads
+
+            | File | Platform | Description |
+            |------|----------|-------------|
+            | `AncrooVoice-Windows.zip` | Windows | Ancroo Backend client |
+            | `AncrooVoice-Linux.tar.gz` | Linux | AppImage - Ancroo Backend client |
+
+            > Ancroo Voice connects to the Ancroo Backend for speech-to-text transcription.
+
+            ---
+
+            ## Installation
+
+            ### Windows
+            1. Download `AncrooVoice-Windows.zip`
+            2. Extract to a folder of your choice
+            3. Edit `ancroo-voice.ini` to configure your STT server endpoint
+            4. Run `AncrooVoice.exe`
+
+            > **Note:** Windows may show an "Unknown publisher" warning. Click "More info" → "Run anyway".
+
+            ### Linux
+            1. Download `AncrooVoice-Linux.tar.gz`
+            2. Extract: `tar -xzf AncrooVoice-Linux.tar.gz`
+            3. Edit `ancroo-voice.ini` to configure your STT server endpoint
+            4. Run: `./AncrooVoice-Linux.sh`
+
+            > **Note:** The launcher script (`AncrooVoice-Linux.sh`) handles FUSE automatically — no system dependencies required.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

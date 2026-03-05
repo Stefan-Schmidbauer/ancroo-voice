@@ -1,0 +1,10 @@
+# Ancroo Voice - Server-only STT client
+# Core dependencies for binary builds (Linux + Windows)
+
+customtkinter>=5.2.0
+python-dotenv>=1.0.0
+pynput>=1.7.0
+numpy>=1.24.0
+sounddevice>=0.4.6
+Pillow>=10.0.0
+requests>=2.31.0
