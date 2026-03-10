@@ -194,6 +194,11 @@ jobs:
           echo "Directory structure:"
           ls -la artifacts/
 
+      - name: Restore file permissions
+        run: |
+          chmod +x artifacts/AncrooVoice-Linux/AncrooVoice-Linux.AppImage
+          chmod +x artifacts/AncrooVoice-Linux/AncrooVoice-Linux.sh
+
       - name: Create archives for release
         run: |
           cd artifacts
@@ -244,8 +249,9 @@ jobs:
             ### Linux
             1. Download `AncrooVoice-Linux.tar.gz`
             2. Extract: `tar -xzf AncrooVoice-Linux.tar.gz`
-            3. Edit `ancroo-voice.ini` to configure your STT server endpoint
-            4. Run: `./AncrooVoice-Linux.sh`
+            3. Make executable: `chmod +x AncrooVoice-Linux.sh AncrooVoice-Linux.AppImage`
+            4. Edit `ancroo-voice.ini` to configure your STT server endpoint
+            5. Run: `./AncrooVoice-Linux.sh`
 
             > **Note:** The launcher script (`AncrooVoice-Linux.sh`) handles FUSE automatically — no system dependencies required.
         env:
