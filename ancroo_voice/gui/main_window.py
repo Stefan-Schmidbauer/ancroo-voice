@@ -114,7 +114,7 @@ class AncrooVoiceGUI:
         main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
         # === Settings Frame ===
-        settings_frame = ctk.CTkFrame(main_frame, corner_radius=0)
+        settings_frame = ctk.CTkFrame(main_frame)
         settings_frame.pack(fill="x", pady=(0, 10))
 
         settings_label = ctk.CTkLabel(
@@ -227,7 +227,7 @@ class AncrooVoiceGUI:
         self.font_decrease_button.pack(side="right", padx=(0, 5))
 
         # === Transcription Frame ===
-        transcription_frame = ctk.CTkFrame(main_frame, corner_radius=0)
+        transcription_frame = ctk.CTkFrame(main_frame)
         transcription_frame.pack(fill="both", expand=True, pady=(0, 10))
 
         transcription_label = ctk.CTkLabel(
