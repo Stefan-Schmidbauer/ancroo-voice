@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![CustomTkinter](https://img.shields.io/badge/CustomTkinter-222222?logo=python&logoColor=white)](https://github.com/TomSchimansky/CustomTkinter)
 [![Status: Beta](https://img.shields.io/badge/Status-Beta-yellow.svg)]()
 
 Push-to-talk speech-to-text client for the [Ancroo Stack](https://github.com/ancroo/ancroo-stack). Hold a hotkey, speak, release - text appears at your cursor.
