@@ -68,7 +68,9 @@ Download the latest release for your platform:
 2. Run AncrooVoice.exe
 ```
 
-> **Note:** Windows may show an "Unknown publisher" warning. Click **"More info"** → **"Run anyway"**.
+> **Note:** Windows SmartScreen may show an "Unknown publisher" warning — this is normal for unsigned open-source software. To proceed:
+> - Click **"More info"** → **"Run anyway"**, or
+> - Right-click the `.exe` → **Properties** → check **"Unblock"** → **Apply** (removes the warning permanently)
 
 **Linux:**
 
