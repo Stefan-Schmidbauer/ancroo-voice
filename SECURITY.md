@@ -1,6 +1,6 @@
 # Security Policy
 
-For the overall Ancroo security policy, roadmap, and Phase 1 limitations, see the [central security policy](https://github.com/ancroo/ancroo/blob/main/SECURITY.md).
+For the overall Ancroo security policy, roadmap, and Phase 0 limitations, see the [central security policy](https://github.com/ancroo/ancroo/blob/main/SECURITY.md).
 
 ## Client-Specific Notes
 
