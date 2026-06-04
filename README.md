@@ -134,6 +134,14 @@ This project is built with the following open-source software:
 
 Speech-to-text is provided by [OpenAI Whisper](https://github.com/openai/whisper) (MIT) models running on your server via the [Ancroo Stack](https://github.com/ancroo/ancroo-stack).
 
+## Contributing
+
+Contributions are welcome! Feel free to open an [issue](https://github.com/ancroo/ancroo-voice/issues) or submit a pull request.
+
+## Security
+
+To report a security vulnerability, please use [GitHub's private vulnerability reporting](https://github.com/ancroo/ancroo-voice/security/advisories/new) instead of opening a public issue.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). The Ancroo name is not covered by this license and remains the property of the author.
